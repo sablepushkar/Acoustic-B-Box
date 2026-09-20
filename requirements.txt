@@ -1,5 +1,2 @@
-# Optional hardware/audio path only.
-# The simulator and self-test use Python's standard library.
-ggwave
-numpy
-sounddevice
+# Optional acoustic transport only.
+ggwave>=1.0

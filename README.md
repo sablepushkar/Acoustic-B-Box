@@ -1,91 +1,111 @@
 # Acoustic-B-Box
 
-## v0.2 - Resilient hospital-operations communication prototype
+## v0.3 — compact hospital-operations communication prototype
 
-Acoustic-B-Box is a small learning project exploring how structured, event-based
-notifications could move between nearby systems when ordinary communication
-paths are unavailable. GGWave is the experimental acoustic transport; it is not
-the product's entire architecture.
+Acoustic-B-Box is a learning project for structured, event-based notifications.
+The sample models a small hospital operations workflow and keeps GGWave as an
+optional acoustic transport instead of making sound the whole application.
 
-IMPORTANT: this repository is a prototype and simulator. All medical data is
-synthetic and all priority, staffing and response fields are demonstration
-parameters, not clinical guidance. Do not use this project with real patient
-data or for real emergency decision-making.
+**Prototype boundary:** all medical examples are synthetic. Response-unit and
+role fields are simulation parameters, not clinical guidance. Do not use this
+repository with real patient information or for real emergency decision-making.
 
-## Simple architecture
+## What the sample demonstrates
 
-Event -> Priority -> Department -> Transport -> Delivery -> Acknowledgement -> Resolution -> Audit
+```text
+Event → Priority → Department → Transport → Delivery → Acknowledgement
+      → In Progress → Resolution → Audit trail
+```
 
-The current sample keeps this practical:
+The current sample includes:
 
-- a terminal menu creates synthetic hospital scenarios;
-- P0-P4 priorities classify the event;
-- departments and responder roles are simulated;
-- SQLite stores events and an audit trail;
-- the simulator runs without microphone/speaker hardware;
-- GGWave remains an optional experimental transport;
-- message IDs and event states provide a foundation for later routing,
-  escalation, web dashboards and interoperability.
+- six synthetic event categories and P0–P4 priorities;
+- simple department/role routing data;
+- SQLite persistence for events, transmissions, devices and audit records;
+- explicit lifecycle validation;
+- retry + failure demonstration;
+- SHA-256 payload integrity fingerprint;
+- terminal operations dashboard and event timeline;
+- hardware-free self-test and six-scenario demo mode;
+- optional GGWave WAV encode/decode path;
+- GitHub Actions CI and a Codespaces-ready Python environment.
 
-## Run the sample
+## Run without extra packages
 
-The easiest test is hardware-free:
+```bash
+python acoustic_bbox.py --test
+python acoustic_bbox.py --demo
+python acoustic_bbox.py --dashboard
+```
 
-    python acoustic_bbox.py --test
+Run one scenario interactively:
 
-Run a sample hospital event:
+```bash
+python acoustic_bbox.py --simulate
+```
 
-    python acoustic_bbox.py --simulate
+Inspect a particular event:
 
-View stored events:
+```bash
+python acoustic_bbox.py --timeline BX-XXXXXXXX
+```
 
-    python acoustic_bbox.py --dashboard
+## Optional acoustic experiment
 
-Optional acoustic experiment:
+Install the optional GGWave package:
 
-    pip install -r requirements.txt
-    python acoustic_bbox.py
+```bash
+pip install -r requirements.txt
+```
 
-The acoustic path requires compatible local audio hardware and a working GGWave
-Python installation. The simulator does not.
+The sample can create a normal mono 16-bit WAV containing the GGWave payload.
+That keeps acoustic testing separate from the hospital simulation itself and
+makes the result easy to play/record on physical devices.
 
-## Tablet development
+First run a demo, note an event ID, then:
 
-GitHub Codespaces provides a browser-based VS Code environment with a terminal
-and compute, so this repository can be developed and tested from a tablet.
-Codespaces is suitable for the simulator/self-test; remote Codespaces should
-not be treated as direct access to the tablet's physical microphone/speaker.
+```bash
+python acoustic_bbox.py --encode-wav BX-XXXXXXXX --wav-out acoustic_event.wav
+python acoustic_bbox.py --decode-wav acoustic_event.wav
+```
 
-## Current sample scope
+The GGWave project describes itself as a small FSK-based data-over-sound
+library with audible and ultrasound protocols and error correction. This
+repository uses one audible protocol for the sample and keeps the transport
+replaceable. See the upstream project for the full protocol set and limits.
 
-Categories:
-- MEDICAL
-- EQUIPMENT
-- LOGISTICS
-- ENVIRONMENT
-- OPERATIONS
-- SYSTEM
+## Tablet workflow
 
-Priority:
-- P0 Critical
-- P1 Urgent
-- P2 Priority
-- P3 Routine
-- P4 Informational
+GitHub Codespaces can provide the Python runtime and terminal through a browser,
+including on a tablet. The simulator/self-test can therefore be developed and
+run without a local laptop. The Codespace itself should not be assumed to have
+direct access to the tablet's physical microphone or speaker.
 
-Event states:
-CREATED -> DISPATCHED -> DELIVERED -> ACKNOWLEDGED -> IN_PROGRESS -> RESOLVED
+## Architecture direction
 
-## Future roadmap
+The project is intentionally small now, but the boundaries are future-friendly:
 
-1. Web dashboard
-2. Real routing and configurable escalation rules
-3. Device registry and authentication
-4. Multi-transport abstraction
-5. Better acoustic reliability tests
-6. Role-based access control
-7. FHIR interoperability layer
-8. Security/privacy review and controlled real-world validation
+```text
+Application events
+       ↓
+Event model + lifecycle
+       ↓
+Transport adapter
+  ├─ Simulator
+  └─ GGWave WAV
+       ↓
+Persistence + audit
+       ↓
+Future web UI / routing / authentication / interoperability
+```
 
-The goal is to demonstrate sound software architecture first, then investigate
-whether any component is suitable for controlled practical deployment later.
+A later version can add LAN/Wi-Fi transport, a web dashboard, configurable
+escalation rules, stronger identity/security controls, and eventually a
+healthcare interoperability adapter without replacing the basic event model.
+
+## Testing philosophy
+
+The repository separates what can be proven locally from what needs physical
+hardware. Core logic is covered by automated tests and GitHub Actions. Acoustic
+performance must be validated separately with actual audio hardware and controlled
+experiments before any real-world use is considered.

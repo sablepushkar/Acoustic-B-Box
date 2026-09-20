@@ -3,32 +3,45 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import acoustic_bbox
+import acoustic_bbox as app
 
 
 class CoreTests(unittest.TestCase):
-    def test_scenario_is_structured(self):
-        event = acoustic_bbox.create_scenario("1")
-        self.assertIn(event.category, acoustic_bbox.CATEGORIES)
-        self.assertIn(event.priority, acoustic_bbox.PRIORITIES)
-        self.assertTrue(event.event_id.startswith("BX-"))
+    def test_event_payload(self):
+        event = app.create_scenario("3")
+        payload = app.payload_for(event)
+        self.assertEqual(payload["message_id"], event.event_id)
+        self.assertEqual(payload["priority"], "P2")
+        self.assertEqual(
+            json.loads(app.payload_bytes(event).decode())["event_type"],
+            "SUPPLY_REQUIRED",
+        )
 
-    def test_json_round_trip(self):
-        event = acoustic_bbox.create_scenario("3")
-        encoded = json.dumps(acoustic_bbox.asdict(event), separators=(",", ":"))
-        decoded = json.loads(encoded)
-        self.assertEqual(decoded["event_id"], event.event_id)
-        self.assertEqual(decoded["event_type"], "SUPPLY_REQUIRED")
-
-    def test_sqlite_event_and_audit(self):
-        with tempfile.TemporaryDirectory() as d:
-            store = acoustic_bbox.Store(Path(d) / "test.db")
-            event = acoustic_bbox.create_scenario("5")
-            store.save_event(event)
-            store.audit(event.event_id, "CREATED", "test")
-            self.assertEqual(len(store.recent_events()), 1)
-            self.assertEqual(len(store.timeline(event.event_id)), 1)
+    def test_lifecycle_and_retry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = app.Store(Path(tmp) / "test.db")
+            event = app.create_scenario("2")
+            app.complete_simulated_event(
+                store,
+                event,
+                app.SimulatorTransport(planned_failures=1),
+            )
+            self.assertEqual(event.status, "RESOLVED")
+            self.assertEqual(event.attempts, 2)
+            self.assertEqual(
+                store.con.execute(
+                    "SELECT COUNT(*) FROM transmissions WHERE event_id=?",
+                    (event.event_id,),
+                ).fetchone()[0],
+                2,
+            )
+            self.assertTrue(len(store.timeline(event.event_id)) >= 6)
             store.close()
+
+    def test_invalid_transition_is_rejected(self):
+        event = app.create_scenario("5")
+        with self.assertRaises(ValueError):
+            app.transition(event, "RESOLVED")
 
 
 if __name__ == "__main__":
