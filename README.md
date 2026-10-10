@@ -1,111 +1,69 @@
-# Acoustic-B-Box
+# Acoustic-B-Box — A.B.B Q3
 
-## v0.3 — compact hospital-operations communication prototype
+**A small event-communication and delivery-audit prototype**
 
-Acoustic-B-Box is a learning project for structured, event-based notifications.
-The sample models a small hospital operations workflow and keeps GGWave as an
-optional acoustic transport instead of making sound the whole application.
+Acoustic-B-Box models how a structured operational event can move through validation, payload encoding, transport attempts, acknowledgement, work-in-progress, and resolution. Q3 focuses on keeping the versioned message envelope consistent across the simulator and the optional acoustic WAV decoder.
 
-**Prototype boundary:** all medical examples are synthetic. Response-unit and
-role fields are simulation parameters, not clinical guidance. Do not use this
-repository with real patient information or for real emergency decision-making.
+## What works in the prototype
 
-## What the sample demonstrates
+- Synthetic event categories and P0–P4 priority labels.
+- Department/role routing fields and explicit lifecycle transitions.
+- SQLite storage for events, transmissions, device status, and audit entries.
+- Retry/failure simulation and per-event timeline.
+- SHA-256 fingerprint of the canonical payload.
+- Terminal dashboard, demo scenarios, and hardware-free self-test.
+- Optional GGWave WAV encode/decode path.
+- Automated tests and GitHub Actions checks.
+
+## Event path
 
 ```text
-Event → Priority → Department → Transport → Delivery → Acknowledgement
-      → In Progress → Resolution → Audit trail
+Create event → validate → canonical payload/hash → transport attempt
+      → delivery/failure → acknowledgement → work → resolution
+      → persisted event, transmission history, and audit trail
 ```
 
-The current sample includes:
+## Run it
 
-- six synthetic event categories and P0–P4 priorities;
-- simple department/role routing data;
-- SQLite persistence for events, transmissions, devices and audit records;
-- explicit lifecycle validation;
-- retry + failure demonstration;
-- SHA-256 payload integrity fingerprint;
-- terminal operations dashboard and event timeline;
-- hardware-free self-test and six-scenario demo mode;
-- optional GGWave WAV encode/decode path;
-- GitHub Actions CI and a Codespaces-ready Python environment.
-
-## Run without extra packages
+The core simulator uses the Python standard library:
 
 ```bash
 python acoustic_bbox.py --test
 python acoustic_bbox.py --demo
 python acoustic_bbox.py --dashboard
-```
-
-Run one scenario interactively:
-
-```bash
 python acoustic_bbox.py --simulate
 ```
 
-Inspect a particular event:
+Inspect an event timeline with its event ID:
 
 ```bash
 python acoustic_bbox.py --timeline BX-XXXXXXXX
 ```
 
-## Optional acoustic experiment
-
-Install the optional GGWave package:
+For the optional audio experiment:
 
 ```bash
-pip install -r requirements.txt
-```
-
-The sample can create a normal mono 16-bit WAV containing the GGWave payload.
-That keeps acoustic testing separate from the hospital simulation itself and
-makes the result easy to play/record on physical devices.
-
-First run a demo, note an event ID, then:
-
-```bash
+python -m pip install -r requirements.txt
 python acoustic_bbox.py --encode-wav BX-XXXXXXXX --wav-out acoustic_event.wav
 python acoustic_bbox.py --decode-wav acoustic_event.wav
 ```
 
-The GGWave project describes itself as a small FSK-based data-over-sound
-library with audible and ultrasound protocols and error correction. This
-repository uses one audible protocol for the sample and keeps the transport
-replaceable. See the upstream project for the full protocol set and limits.
+## Q3 — what changed
 
-## Tablet workflow
+- The project and outgoing payload now use the `A.B.B Q3` version label.
+- The WAV decoder now validates against the current project version rather than the old `0.3` string. This fixes a stale version check that would reject packets created by the current payload builder.
+- The decoded envelope validation is a separate function, so version, message-ID, and basic packet-shape behavior can be tested without requiring acoustic hardware or the optional GGWave dependency.
+- Regression tests cover the current version and stale/malformed packet envelopes.
 
-GitHub Codespaces can provide the Python runtime and terminal through a browser,
-including on a tablet. The simulator/self-test can therefore be developed and
-run without a local laptop. The Codespace itself should not be assumed to have
-direct access to the tablet's physical microphone or speaker.
+## Limits that matter
 
-## Architecture direction
+All examples are synthetic. This is not an emergency dispatch product, medical device, or reliable alert channel. A successful simulator run does not establish acoustic range, intelligibility, privacy, interference tolerance, or delivery guarantees on real hardware. The physical audio path still needs controlled testing on actual devices before any operational claim could be made. Do not use real patient data or rely on this for real emergency response.
 
-The project is intentionally small now, but the boundaries are future-friendly:
+## Next practical steps
 
-```text
-Application events
-       ↓
-Event model + lifecycle
-       ↓
-Transport adapter
-  ├─ Simulator
-  └─ GGWave WAV
-       ↓
-Persistence + audit
-       ↓
-Future web UI / routing / authentication / interoperability
-```
+1. Run the complete self-test and automated test suite after each transport change.
+2. Add repeated-run delivery metrics for the simulator with clearly stated test conditions.
+3. Test audio round trips and failure rates on actual hardware before making performance claims.
+4. Add identity, authorization, and threat modelling before considering networked deployment.
 
-A later version can add LAN/Wi-Fi transport, a web dashboard, configurable
-escalation rules, stronger identity/security controls, and eventually a
-healthcare interoperability adapter without replacing the basic event model.
-
-## Testing philosophy
-
-The repository separates what can be proven locally from what needs physical
-hardware. Core logic is covered by automated tests and GitHub Actions. Acoustic
-performance must be validated separately with actual audio hardware and controlled
-experiments before any real-world use is considered.
+See `DEV_NOTES.md` and `docs/transport-validation.md` for the current transport contract and limits.

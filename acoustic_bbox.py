@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acoustic-B-Box v0.3: compact hospital-operations communication simulator.
+"""Acoustic-B-Box A.B.B Q3: compact event-communication simulator.
 
 Prototype only. Medical examples are synthetic and operational response values
 are simulation parameters, not clinical guidance.
@@ -24,6 +24,7 @@ DEFAULT_WAV = Path("acoustic_event.wav")
 SAMPLE_RATE = 48_000
 GGWAVE_PROTOCOL = 1
 GGWAVE_VOLUME = 20
+PROJECT_VERSION = "A.B.B Q3"
 
 CATEGORIES = {
     "MEDICAL": "Clinical event",
@@ -167,14 +168,32 @@ def validate_event(event: Event) -> None:
         raise ValueError(f"Unknown priority: {event.priority}")
     if event.department not in DEPARTMENTS:
         raise ValueError(f"Unknown department: {event.department}")
-    if event.response_units < 0:
-        raise ValueError("response_units cannot be negative")
+    if not isinstance(event.event_id, str) or not event.event_id.strip():
+        raise ValueError("event_id must be a non-empty string")
+    if not isinstance(event.description, str) or not event.description.strip():
+        raise ValueError("description must be a non-empty string")
+    if len(event.description) > 1000:
+        raise ValueError("description cannot exceed 1000 characters")
+    if not isinstance(event.source_device, str) or not event.source_device.strip():
+        raise ValueError("source_device must be a non-empty string")
+    if isinstance(event.response_units, bool) or not isinstance(event.response_units, int) or event.response_units < 0:
+        raise ValueError("response_units must be a non-negative integer")
+    if not isinstance(event.response_roles, list) or any(
+        not isinstance(role, str) or not role.strip() for role in event.response_roles
+    ):
+        raise ValueError("response_roles must be a list of non-empty strings")
+    if not isinstance(event.data, dict):
+        raise ValueError("event data must be a dictionary")
+    try:
+        json.dumps(event.data, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("event data must contain strict JSON-compatible values") from exc
 
 
 def payload_for(event: Event) -> dict[str, Any]:
     validate_event(event)
     return {
-        "bbox_version": "0.3",
+        "bbox_version": PROJECT_VERSION,
         "message_id": event.event_id,
         "created_at": event.created_at,
         "category": event.category,
@@ -201,6 +220,16 @@ def payload_bytes(event: Event) -> bytes:
 
 def payload_hash(event: Event) -> str:
     return hashlib.sha256(payload_bytes(event)).hexdigest()
+
+
+def validate_decoded_packet(packet: Any) -> dict[str, Any]:
+    """Validate the minimum envelope contract for a decoded transport packet."""
+    if not isinstance(packet, dict):
+        raise ValueError("Decoded packet must be a JSON object.")
+    message_id = packet.get("message_id")
+    if packet.get("bbox_version") != PROJECT_VERSION or not isinstance(message_id, str) or not message_id.strip():
+        raise ValueError(f"Decoded packet is not a valid Acoustic-B-Box {PROJECT_VERSION} event.")
+    return packet
 
 
 def transition(event: Event, new_status: str) -> None:
@@ -508,9 +537,7 @@ class AcousticWavTransport:
             raise RuntimeError("GGWave could not decode this WAV file.")
 
         packet = json.loads(decoded.decode("utf-8"))
-        if packet.get("bbox_version") != "0.3" or not packet.get("message_id"):
-            raise ValueError("Decoded packet is not a valid Acoustic-B-Box v0.3 event.")
-        return packet
+        return validate_decoded_packet(packet)
 
 
 def complete_simulated_event(
@@ -735,7 +762,7 @@ def run_self_test() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Acoustic-B-Box v0.3 sample system"
+        description="Acoustic-B-Box A.B.B Q3 sample system"
     )
     parser.add_argument(
         "--simulate",
@@ -823,7 +850,7 @@ def main() -> None:
             return
 
         else:
-            print("Acoustic-B-Box v0.3")
+            print("Acoustic-B-Box A.B.B Q3")
             print("1. Run sample hospital event")
             print("2. Run all demo scenarios")
             print("3. View dashboard")
