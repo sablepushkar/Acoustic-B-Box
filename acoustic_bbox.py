@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acoustic-B-Box A.B.B 2A: compact event-communication simulator.
+"""Acoustic-B-Box A.B.B Q3: compact event-communication simulator.
 
 Prototype only. Medical examples are synthetic and operational response values
 are simulation parameters, not clinical guidance.
@@ -762,7 +762,7 @@ def run_self_test() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Acoustic-B-Box v0.3 sample system"
+        description="Acoustic-B-Box A.B.B Q3 sample system"
     )
     parser.add_argument(
         "--simulate",
@@ -850,7 +850,7 @@ def main() -> None:
             return
 
         else:
-            print("Acoustic-B-Box v0.3")
+            print("Acoustic-B-Box A.B.B Q3")
             print("1. Run sample hospital event")
             print("2. Run all demo scenarios")
             print("3. View dashboard")
