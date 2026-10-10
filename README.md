@@ -1,111 +1,67 @@
-# Acoustic-B-Box
+# Acoustic-B-Box — A.B.B 2A
 
-## v0.3 — compact hospital-operations communication prototype
+**A small event-communication and delivery-audit prototype**
 
-Acoustic-B-Box is a learning project for structured, event-based notifications.
-The sample models a small hospital operations workflow and keeps GGWave as an
-optional acoustic transport instead of making sound the whole application.
+Acoustic-B-Box models how a structured operational event could move through priority assignment, department routing, transport attempts, acknowledgement, work-in-progress, and resolution. The useful part is the auditable event lifecycle; audio is an optional transport experiment, not the whole system.
 
-**Prototype boundary:** all medical examples are synthetic. Response-unit and
-role fields are simulation parameters, not clinical guidance. Do not use this
-repository with real patient information or for real emergency decision-making.
+## What works in the prototype
 
-## What the sample demonstrates
+- Synthetic event categories and P0–P4 priorities.
+- Department/role routing fields and explicit lifecycle transitions.
+- SQLite storage for events, transmissions, device status, and audit entries.
+- Retry/failure simulation and per-event timeline.
+- SHA-256 fingerprint of the canonical payload.
+- Terminal dashboard, demo scenarios, and hardware-free self-test.
+- Optional GGWave WAV encode/decode path.
+- Automated tests and GitHub Actions checks.
+
+## Event path
 
 ```text
-Event → Priority → Department → Transport → Delivery → Acknowledgement
-      → In Progress → Resolution → Audit trail
+Create event → validate → canonical payload/hash → transport attempt
+      → delivery/failure → acknowledgement → work → resolution
+      → persisted event, transmission history, and audit trail
 ```
 
-The current sample includes:
+## Run it
 
-- six synthetic event categories and P0–P4 priorities;
-- simple department/role routing data;
-- SQLite persistence for events, transmissions, devices and audit records;
-- explicit lifecycle validation;
-- retry + failure demonstration;
-- SHA-256 payload integrity fingerprint;
-- terminal operations dashboard and event timeline;
-- hardware-free self-test and six-scenario demo mode;
-- optional GGWave WAV encode/decode path;
-- GitHub Actions CI and a Codespaces-ready Python environment.
-
-## Run without extra packages
+The core simulator uses the Python standard library:
 
 ```bash
 python acoustic_bbox.py --test
 python acoustic_bbox.py --demo
 python acoustic_bbox.py --dashboard
-```
-
-Run one scenario interactively:
-
-```bash
 python acoustic_bbox.py --simulate
 ```
 
-Inspect a particular event:
+Inspect an event timeline with its event ID:
 
 ```bash
 python acoustic_bbox.py --timeline BX-XXXXXXXX
 ```
 
-## Optional acoustic experiment
-
-Install the optional GGWave package:
+For the optional audio experiment:
 
 ```bash
-pip install -r requirements.txt
-```
-
-The sample can create a normal mono 16-bit WAV containing the GGWave payload.
-That keeps acoustic testing separate from the hospital simulation itself and
-makes the result easy to play/record on physical devices.
-
-First run a demo, note an event ID, then:
-
-```bash
+python -m pip install -r requirements.txt
 python acoustic_bbox.py --encode-wav BX-XXXXXXXX --wav-out acoustic_event.wav
 python acoustic_bbox.py --decode-wav acoustic_event.wav
 ```
 
-The GGWave project describes itself as a small FSK-based data-over-sound
-library with audible and ultrasound protocols and error correction. This
-repository uses one audible protocol for the sample and keeps the transport
-replaceable. See the upstream project for the full protocol set and limits.
+## A.B.B 2A — what this update focuses on
 
-## Tablet workflow
+The update tightens event-boundary validation so malformed descriptions, routing fields, and non-JSON payload data are rejected before persistence or transport. The payload carries the named prototype version so a saved message can be traced back to the code line that produced it.
 
-GitHub Codespaces can provide the Python runtime and terminal through a browser,
-including on a tablet. The simulator/self-test can therefore be developed and
-run without a local laptop. The Codespace itself should not be assumed to have
-direct access to the tablet's physical microphone or speaker.
+## Limits that matter
 
-## Architecture direction
+All examples are synthetic. This is not an emergency dispatch product, medical device, or reliable alert channel. A successful simulator run does not establish acoustic range, intelligibility, privacy, interference tolerance, or delivery guarantees on real hardware. The physical audio path still needs controlled testing on actual devices before any operational claim could be made. Do not use real patient data or rely on this for real emergency response.
 
-The project is intentionally small now, but the boundaries are future-friendly:
+## Next practical steps
 
-```text
-Application events
-       ↓
-Event model + lifecycle
-       ↓
-Transport adapter
-  ├─ Simulator
-  └─ GGWave WAV
-       ↓
-Persistence + audit
-       ↓
-Future web UI / routing / authentication / interoperability
-```
+1. Test invalid event fields and payload serialization failures.
+2. Add deterministic delivery metrics across repeated simulation runs.
+3. Separate transport interfaces further if a second transport is actually implemented.
+4. Test audio round trips and failure rates on hardware before making performance claims.
+5. Add identity, authorization, and threat modelling before considering networked deployment.
 
-A later version can add LAN/Wi-Fi transport, a web dashboard, configurable
-escalation rules, stronger identity/security controls, and eventually a
-healthcare interoperability adapter without replacing the basic event model.
-
-## Testing philosophy
-
-The repository separates what can be proven locally from what needs physical
-hardware. Core logic is covered by automated tests and GitHub Actions. Acoustic
-performance must be validated separately with actual audio hardware and controlled
-experiments before any real-world use is considered.
+See `DEV_NOTES.md` for the update notes and test commands.

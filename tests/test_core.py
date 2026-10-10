@@ -12,6 +12,7 @@ class CoreTests(unittest.TestCase):
         payload = app.payload_for(event)
         self.assertEqual(payload["message_id"], event.event_id)
         self.assertEqual(payload["priority"], "P2")
+        self.assertEqual(payload["bbox_version"], "A.B.B 2A")
         self.assertEqual(
             json.loads(app.payload_bytes(event).decode())["event_type"],
             "SUPPLY_REQUIRED",
@@ -42,6 +43,30 @@ class CoreTests(unittest.TestCase):
         event = app.create_scenario("5")
         with self.assertRaises(ValueError):
             app.transition(event, "RESOLVED")
+
+    def test_description_must_be_non_empty(self):
+        event = app.create_scenario("3")
+        event.description = "  "
+        with self.assertRaisesRegex(ValueError, "description"):
+            app.validate_event(event)
+
+    def test_boolean_is_not_accepted_as_response_unit_count(self):
+        event = app.create_scenario("3")
+        event.response_units = True
+        with self.assertRaisesRegex(ValueError, "non-negative integer"):
+            app.validate_event(event)
+
+    def test_non_json_payload_data_is_rejected(self):
+        event = app.create_scenario("3")
+        event.data = {"bad": float("nan")}
+        with self.assertRaisesRegex(ValueError, "strict JSON"):
+            app.validate_event(event)
+
+    def test_response_roles_must_be_non_empty_strings(self):
+        event = app.create_scenario("3")
+        event.response_roles = [" "]
+        with self.assertRaisesRegex(ValueError, "response_roles"):
+            app.validate_event(event)
 
 
 if __name__ == "__main__":
