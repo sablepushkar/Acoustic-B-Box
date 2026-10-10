@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import sqlite3
 import time
 import uuid
@@ -138,7 +139,7 @@ def now() -> str:
 
 
 def new_id(prefix: str = "BX") -> str:
-    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
+    return f"{prefix}-{uuid.uuid4().hex.upper()}"
 
 
 @dataclass
@@ -184,8 +185,23 @@ def validate_event(event: Event) -> None:
         raise ValueError("response_roles must be a list of non-empty strings")
     if not isinstance(event.data, dict):
         raise ValueError("event data must be a dictionary")
+    def is_strict_json(value: Any) -> bool:
+        if value is None or isinstance(value, (str, bool)):
+            return True
+        if isinstance(value, int) and not isinstance(value, bool):
+            return True
+        if isinstance(value, float):
+            return math.isfinite(value)
+        if isinstance(value, list):
+            return all(is_strict_json(item) for item in value)
+        if isinstance(value, dict):
+            return all(isinstance(key, str) and is_strict_json(item) for key, item in value.items())
+        return False
+
+    if not is_strict_json(event.data):
+        raise ValueError("event data must contain strict JSON-compatible values")
     try:
-        json.dumps(event.data, allow_nan=False)
+        json.dumps(event.data, allow_nan=False, sort_keys=True)
     except (TypeError, ValueError) as exc:
         raise ValueError("event data must contain strict JSON-compatible values") from exc
 
@@ -319,7 +335,16 @@ class Store:
                 data_json
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(event_id) DO UPDATE SET
+                created_at=excluded.created_at,
+                category=excluded.category,
+                priority=excluded.priority,
+                event_type=excluded.event_type,
+                department=excluded.department,
+                description=excluded.description,
+                source_device=excluded.source_device,
                 status=excluded.status,
+                response_units=excluded.response_units,
+                response_roles=excluded.response_roles,
                 attempts=excluded.attempts,
                 transport=excluded.transport,
                 acknowledged_at=excluded.acknowledged_at,
@@ -584,7 +609,7 @@ def complete_simulated_event(
         store.audit(event.event_id, "DELIVERY_FAILED", detail)
 
         if attempt <= retry_limit:
-            event.status = "CREATED"
+            # Remain in FAILED; EVENT_FLOW explicitly permits FAILED -> DISPATCHED.
             store.save_event(event)
             store.audit(
                 event.event_id,
@@ -629,7 +654,7 @@ def complete_simulated_event(
 
 def print_event(event: Event) -> None:
     print(
-        f"\\n[{event.priority}] {event.event_id} | "
+        f"\n[{event.priority}] {event.event_id} | "
         f"{event.category} | {event.event_type}"
     )
     print(f"Department    : {event.department}")
@@ -645,11 +670,11 @@ def print_event(event: Event) -> None:
 def show_dashboard(store: Store) -> None:
     summary = store.summary()
 
-    print("\\n=== ACOUSTIC-B-BOX | SAMPLE OPERATIONS DASHBOARD ===")
+    print("\n=== ACOUSTIC-B-BOX | SAMPLE OPERATIONS DASHBOARD ===")
     print(
         f"Total events: {summary.get('TOTAL', 0)}   "
         f"Active: {summary.get('ACTIVE', 0)}   "
-        f"Devices online: {summary.get('DEVICES_ONLINE', 0)}"
+        f"Seeded demo devices (not live status): {summary.get('DEVICES_ONLINE', 0)}"
     )
     print("-" * 86)
     print("PRI | STATUS         | EVENT ID        | DEPARTMENT   | TYPE")
@@ -671,7 +696,7 @@ def show_dashboard(store: Store) -> None:
 
 def show_timeline(store: Store, event_id: str) -> None:
     rows = store.timeline(event_id)
-    print(f"\\n=== TIMELINE: {event_id} ===")
+    print(f"\n=== TIMELINE: {event_id} ===")
 
     if not rows:
         print("Event not found or has no audit records.")
@@ -687,7 +712,7 @@ def show_timeline(store: Store, event_id: str) -> None:
 
 
 def run_scenario(store: Store) -> None:
-    print("\\nChoose a synthetic scenario:")
+    print("\nChoose a synthetic scenario:")
     for key, cfg in SCENARIOS.items():
         print(f"{key}. [{cfg['priority']}] {cfg['description']}")
 
@@ -701,7 +726,7 @@ def run_scenario(store: Store) -> None:
     complete_simulated_event(store, event, transport)
 
     print_event(event)
-    print("\\nScenario complete.")
+    print("\nScenario complete.")
 
 
 def run_demo(store: Store) -> None:
@@ -710,7 +735,7 @@ def run_demo(store: Store) -> None:
         transport = SimulatorTransport(
             SCENARIOS[key]["failures_before_success"]
         )
-        print(f"\\n>>> DEMO {key}: {event.description}")
+        print(f"\n>>> DEMO {key}: {event.description}")
         complete_simulated_event(store, event, transport)
 
     show_dashboard(store)

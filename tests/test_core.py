@@ -62,6 +62,32 @@ class CoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "strict JSON"):
             app.validate_event(event)
 
+    def test_tuple_is_not_accepted_as_strict_json(self):
+        event = app.create_scenario("3")
+        event.data = {"bad": (1, 2)}
+        with self.assertRaisesRegex(ValueError, "strict JSON"):
+            app.validate_event(event)
+
+    def test_non_string_json_object_keys_are_rejected(self):
+        event = app.create_scenario("3")
+        event.data = {1: "integer key"}
+        with self.assertRaisesRegex(ValueError, "strict JSON"):
+            app.validate_event(event)
+
+    def test_updating_existing_event_keeps_payload_and_hash_consistent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = app.Store(Path(tmp) / "test.db")
+            event = app.create_scenario("3")
+            store.save_event(event)
+            event.description = "Updated synthetic supply request"
+            event.data = {"item": "UPDATED-DEMO-SUPPLY", "quantity": 4}
+            store.save_event(event)
+            row = store.con.execute("SELECT * FROM events WHERE event_id=?", (event.event_id,)).fetchone()
+            self.assertEqual(row["description"], event.description)
+            self.assertEqual(row["data_json"], json.dumps(event.data, sort_keys=True))
+            self.assertEqual(row["payload_sha256"], app.payload_hash(event))
+            store.close()
+
     def test_response_roles_must_be_non_empty_strings(self):
         event = app.create_scenario("3")
         event.response_roles = [" "]

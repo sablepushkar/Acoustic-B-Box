@@ -11,7 +11,7 @@ Acoustic-B-Box models how a structured operational event can move through valida
 - SQLite storage for events, transmissions, device status, and audit entries.
 - Retry/failure simulation and per-event timeline.
 - SHA-256 fingerprint of the canonical payload.
-- Terminal dashboard, demo scenarios, and hardware-free self-test.
+- Terminal dashboard, demo scenarios, and hardware-free self-test. Device counts are seeded simulator rows, not live availability checks.
 - Optional GGWave WAV encode/decode path.
 - Automated tests and GitHub Actions checks.
 
