@@ -1,12 +1,12 @@
-# Acoustic-B-Box — A.B.B 2A
+# Acoustic-B-Box — A.B.B Q3
 
 **A small event-communication and delivery-audit prototype**
 
-Acoustic-B-Box models how a structured operational event could move through priority assignment, department routing, transport attempts, acknowledgement, work-in-progress, and resolution. The useful part is the auditable event lifecycle; audio is an optional transport experiment, not the whole system.
+Acoustic-B-Box models how a structured operational event can move through validation, payload encoding, transport attempts, acknowledgement, work-in-progress, and resolution. Q3 focuses on keeping the versioned message envelope consistent across the simulator and the optional acoustic WAV decoder.
 
 ## What works in the prototype
 
-- Synthetic event categories and P0–P4 priorities.
+- Synthetic event categories and P0–P4 priority labels.
 - Department/role routing fields and explicit lifecycle transitions.
 - SQLite storage for events, transmissions, device status, and audit entries.
 - Retry/failure simulation and per-event timeline.
@@ -48,9 +48,12 @@ python acoustic_bbox.py --encode-wav BX-XXXXXXXX --wav-out acoustic_event.wav
 python acoustic_bbox.py --decode-wav acoustic_event.wav
 ```
 
-## A.B.B 2A — what this update focuses on
+## Q3 — what changed
 
-The update tightens event-boundary validation so malformed descriptions, routing fields, and non-JSON payload data are rejected before persistence or transport. The payload carries the named prototype version so a saved message can be traced back to the code line that produced it.
+- The project and outgoing payload now use the `A.B.B Q3` version label.
+- The WAV decoder now validates against the current project version rather than the old `0.3` string. This fixes a stale version check that would reject packets created by the current payload builder.
+- The decoded envelope validation is a separate function, so version, message-ID, and basic packet-shape behavior can be tested without requiring acoustic hardware or the optional GGWave dependency.
+- Regression tests cover the current version and stale/malformed packet envelopes.
 
 ## Limits that matter
 
@@ -58,10 +61,9 @@ All examples are synthetic. This is not an emergency dispatch product, medical d
 
 ## Next practical steps
 
-1. Test invalid event fields and payload serialization failures.
-2. Add deterministic delivery metrics across repeated simulation runs.
-3. Separate transport interfaces further if a second transport is actually implemented.
-4. Test audio round trips and failure rates on hardware before making performance claims.
-5. Add identity, authorization, and threat modelling before considering networked deployment.
+1. Run the complete self-test and automated test suite after each transport change.
+2. Add repeated-run delivery metrics for the simulator with clearly stated test conditions.
+3. Test audio round trips and failure rates on actual hardware before making performance claims.
+4. Add identity, authorization, and threat modelling before considering networked deployment.
 
-See `DEV_NOTES.md` for the update notes and test commands.
+See `DEV_NOTES.md` and `docs/transport-validation.md` for the current transport contract and limits.

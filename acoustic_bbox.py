@@ -24,7 +24,7 @@ DEFAULT_WAV = Path("acoustic_event.wav")
 SAMPLE_RATE = 48_000
 GGWAVE_PROTOCOL = 1
 GGWAVE_VOLUME = 20
-PROJECT_VERSION = "A.B.B 2A"
+PROJECT_VERSION = "A.B.B Q3"
 
 CATEGORIES = {
     "MEDICAL": "Clinical event",
@@ -220,6 +220,16 @@ def payload_bytes(event: Event) -> bytes:
 
 def payload_hash(event: Event) -> str:
     return hashlib.sha256(payload_bytes(event)).hexdigest()
+
+
+def validate_decoded_packet(packet: Any) -> dict[str, Any]:
+    """Validate the minimum envelope contract for a decoded transport packet."""
+    if not isinstance(packet, dict):
+        raise ValueError("Decoded packet must be a JSON object.")
+    message_id = packet.get("message_id")
+    if packet.get("bbox_version") != PROJECT_VERSION or not isinstance(message_id, str) or not message_id.strip():
+        raise ValueError(f"Decoded packet is not a valid Acoustic-B-Box {PROJECT_VERSION} event.")
+    return packet
 
 
 def transition(event: Event, new_status: str) -> None:
@@ -527,9 +537,7 @@ class AcousticWavTransport:
             raise RuntimeError("GGWave could not decode this WAV file.")
 
         packet = json.loads(decoded.decode("utf-8"))
-        if packet.get("bbox_version") != "0.3" or not packet.get("message_id"):
-            raise ValueError("Decoded packet is not a valid Acoustic-B-Box v0.3 event.")
-        return packet
+        return validate_decoded_packet(packet)
 
 
 def complete_simulated_event(
