@@ -1,16 +1,9 @@
 # Acoustic-B-Box — development notes
 
-## Q3: packet version consistency
+## Packet validation
 
-While checking the WAV decoder, I found that it still expected payload version 0.3, while the builder was using the named project version. I fixed the mismatch and moved the envelope check into validate_decoded_packet.
+While checking the WAV decoder, I found that it still expected an older payload identifier while the builder used the current one. I aligned the builder and decoder checks and moved the envelope checks into `validate_decoded_packet`.
 
-The function checks that the decoded packet is a JSON object, uses the current version and has a non-empty message ID. I added tests for a current packet, an old version, a missing ID and a non-object value.
+The validator checks that the decoded packet is a JSON object, uses the expected payload identifier and contains a non-empty message ID. Tests cover a current packet, an older identifier, a missing ID and non-object values, alongside malformed and oversized packets.
 
-## Commands I use
-
-~~~bash
-python acoustic_bbox.py --test
-python -m unittest discover -s tests -v
-~~~
-
-These checks do not require GGWave or audio hardware. A real round trip still needs controlled testing on physical devices. The simulator is not proof of delivery reliability, and the payload hash is not sender authentication.
+The payload identifier is an internal compatibility field, not a public project release name. Real acoustic delivery between separate devices still needs separate testing.
