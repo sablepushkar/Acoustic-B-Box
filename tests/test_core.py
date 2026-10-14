@@ -101,7 +101,7 @@ class CoreTests(unittest.TestCase):
     def test_decoder_rejects_stale_payload_version(self):
         packet = app.payload_for(app.create_scenario("3"))
         packet["bbox_version"] = "0.3"
-        with self.assertRaisesRegex(ValueError, "A.B.B Q3"):
+        with self.assertRaisesRegex(ValueError, "payload version"):
             app.validate_decoded_packet(packet)
 
     def test_decoder_rejects_missing_message_id(self):
