@@ -250,7 +250,7 @@ def validate_decoded_packet(packet: Any) -> dict[str, Any]:
     if missing:
         raise ValueError("Decoded packet is missing required field(s): " + ", ".join(missing))
     if packet.get("bbox_version") != PROJECT_VERSION:
-        raise ValueError(f"Decoded packet is not a valid Acoustic-B-Box event.")
+        raise ValueError(f"Decoded packet has an unsupported Acoustic-B-Box payload version.")
     for field_name in ("message_id", "created_at", "event_type", "department", "source_device", "description"):
         value = packet.get(field_name)
         if not isinstance(value, str) or not value.strip():
