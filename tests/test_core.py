@@ -107,7 +107,7 @@ class CoreTests(unittest.TestCase):
     def test_decoder_rejects_missing_message_id(self):
         packet = app.payload_for(app.create_scenario("3"))
         packet.pop("message_id")
-        with self.assertRaisesRegex(ValueError, "A.B.B Q3"):
+        with self.assertRaisesRegex(ValueError, "missing required.*message_id"):
             app.validate_decoded_packet(packet)
 
     def test_decoder_rejects_non_object_payload(self):
