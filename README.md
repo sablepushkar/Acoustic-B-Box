@@ -67,3 +67,8 @@ All examples are synthetic. This is not an emergency dispatch product, medical d
 4. Add identity, authorization, and threat modelling before considering networked deployment.
 
 See `DEV_NOTES.md` and `docs/transport-validation.md` for the current transport contract and limits.
+
+
+## Unified workspace
+
+This component is also included in the [Saturnum unified workspace](https://github.com/sablepushkar/Saturnum) under `components/acoustic_bbox/`, alongside VIREON and a combined CI workflow. This standalone repository remains available for focused development and history.
