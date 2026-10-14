@@ -114,6 +114,26 @@ class CoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "JSON object"):
             app.validate_decoded_packet(["not", "an", "object"])
 
+    def test_decoder_rejects_incomplete_packet(self):
+        with self.assertRaisesRegex(ValueError, "missing required"):
+            app.validate_decoded_packet({"bbox_version": app.PROJECT_VERSION, "message_id": "X"})
+
+    def test_decoder_rejects_invalid_response_and_naive_timestamp(self):
+        packet = app.payload_for(app.create_scenario("3"))
+        packet["response"]["units_demo"] = True
+        with self.assertRaisesRegex(ValueError, "non-negative integer"):
+            app.validate_decoded_packet(packet)
+        packet = app.payload_for(app.create_scenario("3"))
+        packet["created_at"] = "2026-10-14T12:00:00"
+        with self.assertRaisesRegex(ValueError, "timezone"):
+            app.validate_decoded_packet(packet)
+
+    def test_decoder_rejects_oversized_packet(self):
+        packet = app.payload_for(app.create_scenario("3"))
+        packet["data"]["note"] = "x" * 66000
+        with self.assertRaisesRegex(ValueError, "64 KiB"):
+            app.validate_decoded_packet(packet)
+
 
 if __name__ == "__main__":
     unittest.main()
