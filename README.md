@@ -46,3 +46,7 @@ The event ID must exist in the local demo data. See the [portfolio demo guide](d
 A passing simulator run does not prove real acoustic delivery. Usable range, interference handling, privacy and successful delivery between physical devices have not been established. A hash can detect payload changes but does not authenticate a sender. This is a learning prototype, not an emergency dispatch product or medical device. Use synthetic data only and do not rely on it for real emergencies.
 
 The project is also included in [Saturnum](https://github.com/sablepushkar/Saturnum), where I run combined checks with VIREON.
+
+---
+
+Copyright © 2026 Pushkar Sudam Sable. See [COPYRIGHT.md](COPYRIGHT.md) for ownership and license notes.
